@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventFlow Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-content">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span>EventFlow Electronics</span>
+    </div>
+    <div class="nav-badge" id="team-badge">Demo Environment</div>
+  </div>
+</nav>
+
+<main class="container">
+  <!-- Step 1: Product Selection -->
+  <section class="section" id="step-products">
+    <div class="step-header">
+      <span class="step-number">1</span>
+      <h2>Select Your Products</h2>
+    </div>
+
+    <div class="product-grid">
+      <div class="product-card" data-product-id="prod-mech-kb" data-name="Mechanical Keyboard" data-price-usd="8999" data-price-jpy="12800">
+        <div class="product-image">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg>
+        </div>
+        <h3>Mechanical Keyboard</h3>
+        <p class="product-desc">Cherry MX switches, RGB backlit</p>
+        <div class="product-price" data-usd="$89.99" data-jpy="&yen;12,800">$89.99</div>
+        <div class="quantity-control">
+          <button class="qty-btn" onclick="changeQty(this, -1)">-</button>
+          <span class="qty-value">0</span>
+          <button class="qty-btn" onclick="changeQty(this, 1)">+</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-product-id="prod-wireless-mouse" data-name="Wireless Mouse" data-price-usd="4999" data-price-jpy="7200">
+        <div class="product-image">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><path d="M12 2C8 2 5 5 5 9v6c0 4 3 7 7 7s7-3 7-7V9c0-4-3-7-7-7z"/><line x1="12" y1="6" x2="12" y2="10"/></svg>
+        </div>
+        <h3>Wireless Mouse</h3>
+        <p class="product-desc">Ergonomic, 16K DPI sensor</p>
+        <div class="product-price" data-usd="$49.99" data-jpy="&yen;7,200">$49.99</div>
+        <div class="quantity-control">
+          <button class="qty-btn" onclick="changeQty(this, -1)">-</button>
+          <span class="qty-value">0</span>
+          <button class="qty-btn" onclick="changeQty(this, 1)">+</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-product-id="prod-usb-hub" data-name="USB-C Hub" data-price-usd="3499" data-price-jpy="5000">
+        <div class="product-image">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><rect x="4" y="8" width="16" height="8" rx="2"/><circle cx="8" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/></svg>
+        </div>
+        <h3>USB-C Hub</h3>
+        <p class="product-desc">7-port, 100W pass-through charging</p>
+        <div class="product-price" data-usd="$34.99" data-jpy="&yen;5,000">$34.99</div>
+        <div class="quantity-control">
+          <button class="qty-btn" onclick="changeQty(this, -1)">-</button>
+          <span class="qty-value">0</span>
+          <button class="qty-btn" onclick="changeQty(this, 1)">+</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 2: Currency & Checkout -->
+  <section class="section" id="step-checkout">
+    <div class="step-header">
+      <span class="step-number">2</span>
+      <h2>Checkout</h2>
+    </div>
+
+    <div class="checkout-grid">
+      <div class="checkout-form">
+        <div class="form-group">
+          <label>Customer ID</label>
+          <input type="text" id="customer-id" value="workshop-user" readonly class="input-readonly">
+        </div>
+
+        <div class="form-group">
+          <label>Payment Currency</label>
+          <div class="currency-toggle">
+            <button class="currency-btn active" data-currency="USD" onclick="setCurrency('USD')">
+              <span class="currency-symbol">$</span> USD
+              <span class="currency-note">US Dollar</span>
+            </button>
+            <button class="currency-btn" data-currency="JPY" onclick="setCurrency('JPY')">
+              <span class="currency-symbol">&yen;</span> JPY
+              <span class="currency-note">Japanese Yen</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="place-order-btn" id="place-order-btn" onclick="placeOrder()" disabled>
+          <span class="btn-text">Place Order</span>
+          <span class="btn-spinner" style="display:none;">
+            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" dur="0.8s" from="0 12 12" to="360 12 12" repeatCount="indefinite"/></circle></svg>
+            Processing...
+          </span>
+        </button>
+      </div>
+
+      <div class="order-summary">
+        <h3>Order Summary</h3>
+        <div id="summary-items">
+          <p class="empty-cart">No items selected</p>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-total">
+          <span>Total</span>
+          <span id="summary-total-value">$0.00</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Result Section -->
+  <section class="section result-section" id="result-section" style="display:none;">
+    <div id="result-success" style="display:none;">
+      <div class="result-icon success-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <h2>Order Confirmed!</h2>
+      <p class="result-detail" id="success-detail"></p>
+      <div class="result-meta" id="success-meta"></div>
+    </div>
+
+    <div id="result-error" style="display:none;">
+      <div class="result-icon error-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <h2>Unable to Process Order</h2>
+      <p class="result-detail error-detail">We're sorry, something went wrong while processing your payment. Please try again later or contact support.</p>
+      <div class="error-code" id="error-code"></div>
+    </div>
+
+    <button class="reset-btn" onclick="resetForm()">Place Another Order</button>
+  </section>
+
+  <!-- Order History -->
+  <section class="section" id="step-history">
+    <div class="step-header">
+      <span class="step-number">3</span>
+      <h2>Recent Orders</h2>
+      <button class="refresh-btn" onclick="loadOrders()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="orders-list">
+      <p class="empty-orders">No orders yet. Place your first order above!</p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>EventFlow Demo &mdash; Cognition Partner Workshop</p>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
