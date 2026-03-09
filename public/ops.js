@@ -302,14 +302,20 @@ async function launchDevinInvestigation() {
     }
 
     const data = await response.json();
+    const sessionUrl = data.devin_url || data.url || '';
+    const sessionId = data.devin_session_id || data.session_id || 'N/A';
     resultDiv.style.display = 'block';
     resultHeader.innerHTML = '<span class="devin-status devin-status-success">Session Created</span> Devin is investigating';
     resultBody.innerHTML = `
       <p>Devin has started investigating the incident automatically.</p>
+      ${sessionUrl ? `<p style="margin:16px 0;"><a href="${sessionUrl}" target="_blank" class="devin-btn devin-btn-primary" style="display:inline-flex;text-decoration:none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open Devin Session
+      </a></p>` : ''}
       <div class="devin-session-info">
-        <div class="ctx-row"><span class="ctx-label">Session ID:</span> <span class="ctx-value">${data.session_id || 'N/A'}</span></div>
+        <div class="ctx-row"><span class="ctx-label">Session ID:</span> <span class="ctx-value">${sessionId}</span></div>
         <div class="ctx-row"><span class="ctx-label">Status:</span> <span class="ctx-value">In Progress</span></div>
-        ${data.url ? `<div class="ctx-row"><span class="ctx-label">View Session:</span> <a href="${data.url}" target="_blank" class="devin-link">${data.url}</a></div>` : ''}
+        ${sessionUrl ? `<div class="ctx-row"><span class="ctx-label">Session URL:</span> <a href="${sessionUrl}" target="_blank" class="devin-link">${sessionUrl}</a></div>` : ''}
       </div>
       <p style="margin-top:12px;">Devin will read the production logs, trace the bug across services, and open a PR with the fix. This typically takes 3-5 minutes.</p>
     `;
