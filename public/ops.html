@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventFlow Operations Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/ops-styles.css">
+</head>
+<body>
+
+<nav class="navbar ops-navbar">
+  <div class="nav-content">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>EventFlow Operations</span>
+    </div>
+    <div class="ops-nav-right">
+      <span class="ops-status-indicator" id="system-status">
+        <span class="status-dot dot-checking"></span>
+        Checking...
+      </span>
+      <div class="nav-badge" id="team-badge">Demo Environment</div>
+    </div>
+  </div>
+</nav>
+
+<main class="container ops-container">
+  <!-- System Health Overview -->
+  <section class="section ops-health-section">
+    <div class="step-header">
+      <span class="step-number ops-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </span>
+      <h2>System Health</h2>
+      <button class="refresh-btn" onclick="refreshAll()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+
+    <div class="health-grid">
+      <div class="health-card" id="health-order">
+        <div class="health-card-header">
+          <span class="health-service-name">Order Service</span>
+          <span class="health-badge health-checking" id="order-health-badge">checking</span>
+        </div>
+        <div class="health-url" id="order-url"></div>
+        <div class="health-detail" id="order-detail">Checking connectivity...</div>
+      </div>
+      <div class="health-card" id="health-payment">
+        <div class="health-card-header">
+          <span class="health-service-name">Payment Service</span>
+          <span class="health-badge health-checking" id="payment-health-badge">checking</span>
+        </div>
+        <div class="health-url" id="payment-url"></div>
+        <div class="health-detail" id="payment-detail">Checking connectivity...</div>
+      </div>
+      <div class="health-card" id="health-storefront">
+        <div class="health-card-header">
+          <span class="health-service-name">Storefront</span>
+          <span class="health-badge health-healthy" id="storefront-health-badge">healthy</span>
+        </div>
+        <div class="health-url" id="storefront-url"></div>
+        <div class="health-detail">Serving this page</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Errors / Incidents -->
+  <section class="section ops-incidents-section">
+    <div class="step-header">
+      <span class="step-number ops-step ops-step-red">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <h2>Recent Incidents</h2>
+      <span class="incident-count" id="incident-count">0 errors</span>
+    </div>
+
+    <div id="incidents-list">
+      <div class="ops-empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <p>No incidents detected. Submit a JPY order from the <a href="/">storefront</a> to trigger the bug.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Orders with Status -->
+  <section class="section">
+    <div class="step-header">
+      <span class="step-number ops-step ops-step-blue">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </span>
+      <h2>Order Log</h2>
+    </div>
+    <div id="ops-orders-list">
+      <p class="ops-empty-state-text">Loading orders...</p>
+    </div>
+  </section>
+
+  <!-- Devin Investigation Panel -->
+  <section class="section ops-devin-section" id="devin-section" style="display:none;">
+    <div class="step-header">
+      <span class="step-number ops-step ops-step-purple">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </span>
+      <h2>Devin AI Investigation</h2>
+    </div>
+
+    <div class="devin-panel">
+      <div class="devin-header">
+        <div class="devin-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M12 2a10 10 0 0110 10 10 10 0 01-10 10A10 10 0 012 12 10 10 0 0112 2z"/><path d="M12 8v4l3 3"/></svg>
+          <span>Devin - AI Software Engineer</span>
+        </div>
+      </div>
+
+      <div class="devin-context" id="devin-context">
+        <h4>Incident Context</h4>
+        <div class="devin-context-details" id="devin-context-details"></div>
+      </div>
+
+      <div class="devin-actions">
+        <p class="devin-explanation">Launch Devin to investigate this production incident. Devin will connect to your observability stack, identify the root cause across services, and open a PR with the fix.</p>
+
+        <div class="devin-action-buttons">
+          <button class="devin-btn devin-btn-primary" id="devin-investigate-btn" onclick="launchDevinInvestigation()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Investigate with Devin
+          </button>
+          <button class="devin-btn devin-btn-secondary" onclick="copyDevinPrompt()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copy Prompt for Manual Use
+          </button>
+        </div>
+      </div>
+
+      <div class="devin-result" id="devin-result" style="display:none;">
+        <div class="devin-result-header" id="devin-result-header"></div>
+        <div class="devin-result-body" id="devin-result-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How This Works -->
+  <section class="section ops-how-section">
+    <div class="step-header">
+      <span class="step-number ops-step ops-step-gray">?</span>
+      <h2>How This Demo Works</h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-number">1</div>
+        <h4>Trigger the Bug</h4>
+        <p>Go to the <a href="/">storefront</a> and place an order using <strong>JPY currency</strong>. The payment service will crash due to a zero-decimal currency bug.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">2</div>
+        <h4>See the Error</h4>
+        <p>This dashboard shows the failed order and payment processing error. In production, this would appear in your observability tool (Datadog, PagerDuty, etc).</p>
+      </div>
+      <div class="how-card">
+        <div class="how-number">3</div>
+        <h4>Launch Devin</h4>
+        <p>Click <strong>"Investigate with Devin"</strong> to dispatch an AI software engineer. Devin reads logs, traces the bug, and opens a fix PR automatically.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>EventFlow Operations Dashboard &mdash; Cognition Partner Workshop</p>
+</footer>
+
+<script src="/ops.js"></script>
+</body>
+</html>
