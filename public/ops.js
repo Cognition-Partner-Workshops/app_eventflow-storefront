@@ -250,8 +250,8 @@ async function launchDevinInvestigation() {
 
   const prompt = buildDevinPrompt();
 
-  // Check if Devin API is configured
-  if (!DEVIN_API_KEY || DEVIN_API_KEY === '%%DEVIN_API_KEY%%' || DEVIN_API_KEY === '') {
+  // Check if Devin API is configured (key must start with valid prefix)
+  if (!DEVIN_API_KEY || DEVIN_API_KEY === '' || DEVIN_API_KEY.includes('%')) {
     resultDiv.style.display = 'block';
     resultHeader.innerHTML = '<span class="devin-status devin-status-info">Manual Mode</span> Devin API not configured';
     resultBody.innerHTML = `
