@@ -2,6 +2,7 @@
 const API_BASE = window.__ENV__?.API_BASE || '%%API_BASE%%';
 const DEVIN_API_URL = '%%DEVIN_API_URL%%';
 const DEVIN_API_KEY = '%%DEVIN_API_KEY%%';
+const WEBHOOK_URL = '%%WEBHOOK_URL%%';
 
 let teamId = '';
 let teamNumber = '';
@@ -250,18 +251,18 @@ async function launchDevinInvestigation() {
 
   const prompt = buildDevinPrompt();
 
-  // Check if Devin API is configured (key must start with valid prefix)
-  if (!DEVIN_API_KEY || DEVIN_API_KEY === '' || DEVIN_API_KEY.includes('%')) {
+  // Check if webhook proxy is configured
+  if (!WEBHOOK_URL || WEBHOOK_URL === '' || WEBHOOK_URL.includes('%')) {
     resultDiv.style.display = 'block';
-    resultHeader.innerHTML = '<span class="devin-status devin-status-info">Manual Mode</span> Devin API not configured';
+    resultHeader.innerHTML = '<span class="devin-status devin-status-info">Manual Mode</span> Webhook not configured';
     resultBody.innerHTML = `
-      <p>The Devin API key is not configured for this deployment. You can use the prompt manually:</p>
+      <p>The webhook proxy is not configured for this deployment. You can use the prompt manually:</p>
       <ol>
         <li>Go to <a href="https://app.devin.ai" target="_blank">app.devin.ai</a></li>
         <li>Start a new session</li>
         <li>Paste the investigation prompt (click "Copy Prompt" above)</li>
       </ol>
-      <p style="margin-top:12px;"><strong>For automatic mode:</strong> Set the <code>DEVIN_API_KEY</code> environment variable on the storefront container.</p>
+      <p style="margin-top:12px;"><strong>For automatic mode:</strong> Set the <code>WEBHOOK_URL</code> environment variable on the storefront container.</p>
     `;
     btn.disabled = false;
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Investigate with Devin';
@@ -269,13 +270,13 @@ async function launchDevinInvestigation() {
   }
 
   try {
-    const response = await fetch(`${DEVIN_API_URL}/sessions`, {
+    // Call the webhook proxy (server-side) to avoid browser CORS issues
+    const response = await fetch(`${WEBHOOK_URL}/investigate`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${DEVIN_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ prompt: prompt })
+      body: JSON.stringify({ team_id: teamId, prompt: prompt })
     });
 
     if (!response.ok) {
