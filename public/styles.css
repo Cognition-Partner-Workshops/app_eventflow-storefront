@@ -440,6 +440,26 @@ body {
   color: #991b1b;
 }
 
+/* Nav right group */
+.nav-right-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.nav-ops-link {
+  font-size: 13px;
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.nav-ops-link:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
 /* Footer */
 .footer {
   text-align: center;
