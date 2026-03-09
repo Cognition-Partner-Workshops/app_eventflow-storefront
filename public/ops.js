@@ -108,7 +108,7 @@ async function loadOrders() {
           status: o.status,
           created_at: o.created_at,
           error_type: 'Payment Processing Failure',
-          error_detail: 'JPY order stuck in pending - payment service likely crashed during processing. ValueError: zero-decimal currency conversion error.',
+          error_detail: 'Order stuck in pending — payment service appears to have crashed or timed out while processing this order. Customer received "Unable to Process Order" error.',
           severity: 'critical'
         });
       }
@@ -208,36 +208,54 @@ function buildDevinPrompt() {
   const paymentUrl = API_BASE.replace('ef-order-', 'ef-payment-');
   const branch = teamId || 'main';
 
-  return `## Production Incident Investigation
+  // Build incident details from the most recent incident
+  const incident = incidents.length > 0 ? incidents[0] : null;
+  const orderId = incident ? incident.order_id : 'unknown';
+  const currency = incident ? incident.currency : 'unknown';
+  const amount = incident ? incident.total_amount : 'unknown';
+
+  return `## Production Incident — Service Outage
 
 **Team**: ${teamId || 'unknown'}
-**Alert**: Payment Processing Failure on JPY orders
-**Severity**: Critical
-**Order Service**: ${orderUrl}
-**Payment Service**: ${paymentUrl}
+**Severity**: Critical — customer-facing failure
+**Time detected**: ${new Date().toISOString()}
 
-### Context
+### What We Know
 
-The EventFlow payment processing stack is experiencing errors. JPY (Japanese Yen) orders are accepted by the Order Service but the Payment Service crashes during processing. USD orders work correctly.
+Our e-commerce platform has two backend services: an **Order Service** that accepts customer orders and publishes events, and a **Payment Service** that consumes those events and processes payments.
 
-The error is: \`ValueError: Amount X.X JPY is below minimum threshold\` — the payment service incorrectly divides all currency amounts by 100 (converting cents to dollars), but JPY is a zero-decimal currency that should not be divided.
+**Operational symptoms:**
+- Customers placing orders in certain currencies see a long delay followed by a generic "Unable to Process Order" error
+- Orders in USD complete successfully with no issues
+- The Payment Service appears to be crashing or failing intermittently — health checks are failing
+- Affected orders remain stuck in "pending" status and never complete
+- The Order Service is healthy and accepting orders normally — the problem is downstream
+
+**Recent affected order:**
+- Order ID: \`${orderId}\`
+- Currency: ${currency}, Amount: ${amount}
+
+### Live Environment
+
+- **Order Service**: ${orderUrl}
+- **Payment Service**: ${paymentUrl}
+- Both services have Swagger docs at \`/docs\` and health endpoints at \`/health\`
+- Orders can be viewed at \`GET /api/orders\` on the Order Service
 
 ### Repositories
 
-- https://github.com/Cognition-Partner-Workshops/app_eventflow-order-service (branch: ${branch})
-- https://github.com/Cognition-Partner-Workshops/app_eventflow-payment-service (branch: ${branch})
+- https://github.com/Cognition-Partner-Workshops/app_eventflow-order-service (branch: \`${branch}\`)
+- https://github.com/Cognition-Partner-Workshops/app_eventflow-payment-service (branch: \`${branch}\`)
 - https://github.com/Cognition-Partner-Workshops/app_eventflow-infra
-- https://github.com/Cognition-Partner-Workshops/app_eventflow-storefront
+- https://github.com/Cognition-Partner-Workshops/app_eventflow-storefront (branch: \`${branch}\`)
 
-### Investigation Steps
+### Your Task
 
-1. Look at the payment service code in \`app_eventflow-payment-service\`, specifically the payment processor in \`app/services/processor.py\`.
-2. Identify the zero-decimal currency bug in the \`convert_to_display_amount()\` function.
-3. Open a Pull Request on \`app_eventflow-payment-service\` against the \`${branch}\` branch with:
-   - The bug fix: skip division by 100 for zero-decimal currencies (JPY, KRW, VND, etc.)
-   - A new test case covering JPY order processing
-   - Clear PR description explaining the root cause and fix
-4. Verify the fix passes CI.`;
+1. **Investigate** — Figure out why certain orders are failing. Look at the code, check the service endpoints, and identify the root cause.
+2. **Fix** — Open a Pull Request on the appropriate repository against the \`${branch}\` branch with the bug fix and a new test case that covers the failure scenario.
+3. **Verify** — Make sure the fix passes CI before marking the investigation complete.
+
+IMPORTANT: Open your fix PR against the \`${branch}\` branch, not \`main\`. This team has its own isolated deployment.`;
 }
 
 async function launchDevinInvestigation() {
