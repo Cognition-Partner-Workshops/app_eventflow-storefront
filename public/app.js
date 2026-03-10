@@ -122,22 +122,17 @@ async function placeOrder() {
 
     const order = await orderRes.json();
 
-    // For JPY orders: simulate the payment processing delay,
-    // then show the error that the payment service would surface
-    if (selectedCurrency === 'JPY') {
-      // Simulate a long, frustrating wait as the payment "processes"
-      await sleep(4000 + Math.random() * 2000);
-
-      // Show error - the payment service crashed in the background
+    // Poll order status — payment service processes async via Service Bus
+    // and calls back to update the order status
+    const finalOrder = await pollOrderStatus(order.order_id);
+    if (finalOrder && finalOrder.status === 'completed') {
+      showSuccess(finalOrder);
+    } else {
       showError(
         order.order_id,
         'ERR_PAYMENT_PROCESSING_FAILED',
-        'Payment gateway timeout — the downstream payment processor was unable to complete your transaction.'
+        'Unable to process order — the downstream payment processor was unable to complete your transaction.'
       );
-    } else {
-      // USD: slight realistic delay, then success
-      await sleep(800 + Math.random() * 400);
-      showSuccess(order);
     }
   } catch (err) {
     showError(null, 'ERR_SERVICE_UNAVAILABLE', err.message);
@@ -151,6 +146,30 @@ async function placeOrder() {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function pollOrderStatus(orderId) {
+  // Poll the order service for status updates
+  // Payment service calls back to update order status after processing
+  const maxAttempts = 15;
+  const intervalMs = 1000;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    await sleep(intervalMs);
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}`);
+      if (res.ok) {
+        const order = await res.json();
+        if (order.status !== 'pending') {
+          return order;
+        }
+      }
+    } catch (e) {
+      // ignore fetch errors, keep polling
+    }
+  }
+  // Timed out — order still pending (payment service likely crashed)
+  return null;
 }
 
 // ── Results ──
