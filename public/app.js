@@ -271,6 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (teamMatch) {
     document.getElementById('team-badge').textContent = `Team ${teamMatch[1]}`;
     document.getElementById('customer-id').value = `team${teamMatch[1]}-user`;
+  } else if (hostname.includes('-main')) {
+    document.getElementById('team-badge').textContent = 'Main';
+    document.getElementById('customer-id').value = 'main-user';
   }
 
   updateSummary();
