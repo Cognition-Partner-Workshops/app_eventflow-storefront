@@ -2,6 +2,7 @@
 const API_BASE = window.__ENV__?.API_BASE || '%%API_BASE%%';
 const DEVIN_API_URL = '%%DEVIN_API_URL%%';
 const DEVIN_API_KEY = '%%DEVIN_API_KEY%%';
+const WEBHOOK_URL = '%%WEBHOOK_URL%%';
 
 let teamId = '';
 let teamNumber = '';
@@ -107,7 +108,7 @@ async function loadOrders() {
           status: o.status,
           created_at: o.created_at,
           error_type: 'Payment Processing Failure',
-          error_detail: 'JPY order stuck in pending - payment service likely crashed during processing. ValueError: zero-decimal currency conversion error.',
+          error_detail: 'Order stuck in pending — payment service appears to have crashed or timed out while processing this order. Customer received "Unable to Process Order" error.',
           severity: 'critical'
         });
       }
@@ -158,7 +159,7 @@ function renderIncidents() {
     container.innerHTML = `
       <div class="ops-empty-state">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-        <p>No incidents detected. Submit a JPY order from the <a href="/">storefront</a> to trigger the bug.</p>
+        <p>No incidents detected. Place an order from the <a href="/">storefront</a> using different currencies to test the system.</p>
       </div>`;
     return;
   }
@@ -207,36 +208,54 @@ function buildDevinPrompt() {
   const paymentUrl = API_BASE.replace('ef-order-', 'ef-payment-');
   const branch = teamId || 'main';
 
-  return `## Production Incident Investigation
+  // Build incident details from the most recent incident
+  const incident = incidents.length > 0 ? incidents[0] : null;
+  const orderId = incident ? incident.order_id : 'unknown';
+  const currency = incident ? incident.currency : 'unknown';
+  const amount = incident ? incident.total_amount : 'unknown';
+
+  return `## Production Incident — Service Outage
 
 **Team**: ${teamId || 'unknown'}
-**Alert**: Payment Processing Failure on JPY orders
-**Severity**: Critical
-**Order Service**: ${orderUrl}
-**Payment Service**: ${paymentUrl}
+**Severity**: Critical — customer-facing failure
+**Time detected**: ${new Date().toISOString()}
 
-### Context
+### What We Know
 
-The EventFlow payment processing stack is experiencing errors. JPY (Japanese Yen) orders are accepted by the Order Service but the Payment Service crashes during processing. USD orders work correctly.
+Our e-commerce platform has two backend services: an **Order Service** that accepts customer orders and publishes events, and a **Payment Service** that consumes those events and processes payments.
 
-The error is: \`ValueError: Amount X.X JPY is below minimum threshold\` — the payment service incorrectly divides all currency amounts by 100 (converting cents to dollars), but JPY is a zero-decimal currency that should not be divided.
+**Operational symptoms:**
+- Customers placing orders in certain currencies see a long delay followed by a generic "Unable to Process Order" error
+- Orders in USD complete successfully with no issues
+- The Payment Service appears to be crashing or failing intermittently — health checks are failing
+- Affected orders remain stuck in "pending" status and never complete
+- The Order Service is healthy and accepting orders normally — the problem is downstream
+
+**Recent affected order:**
+- Order ID: \`${orderId}\`
+- Currency: ${currency}, Amount: ${amount}
+
+### Live Environment
+
+- **Order Service**: ${orderUrl}
+- **Payment Service**: ${paymentUrl}
+- Both services have Swagger docs at \`/docs\` and health endpoints at \`/health\`
+- Orders can be viewed at \`GET /api/orders\` on the Order Service
 
 ### Repositories
 
-- https://github.com/Cognition-Partner-Workshops/app_eventflow-order-service (branch: ${branch})
-- https://github.com/Cognition-Partner-Workshops/app_eventflow-payment-service (branch: ${branch})
+- https://github.com/Cognition-Partner-Workshops/app_eventflow-order-service (branch: \`${branch}\`)
+- https://github.com/Cognition-Partner-Workshops/app_eventflow-payment-service (branch: \`${branch}\`)
 - https://github.com/Cognition-Partner-Workshops/app_eventflow-infra
-- https://github.com/Cognition-Partner-Workshops/app_eventflow-storefront
+- https://github.com/Cognition-Partner-Workshops/app_eventflow-storefront (branch: \`${branch}\`)
 
-### Investigation Steps
+### Your Task
 
-1. Look at the payment service code in \`app_eventflow-payment-service\`, specifically the payment processor in \`app/services/processor.py\`.
-2. Identify the zero-decimal currency bug in the \`convert_to_display_amount()\` function.
-3. Open a Pull Request on \`app_eventflow-payment-service\` against the \`${branch}\` branch with:
-   - The bug fix: skip division by 100 for zero-decimal currencies (JPY, KRW, VND, etc.)
-   - A new test case covering JPY order processing
-   - Clear PR description explaining the root cause and fix
-4. Verify the fix passes CI.`;
+1. **Investigate** — Figure out why certain orders are failing. Look at the code, check the service endpoints, and identify the root cause.
+2. **Fix** — Open a Pull Request on the appropriate repository against the \`${branch}\` branch with the bug fix and a new test case that covers the failure scenario.
+3. **Verify** — Make sure the fix passes CI before marking the investigation complete.
+
+IMPORTANT: Open your fix PR against the \`${branch}\` branch, not \`main\`. This team has its own isolated deployment.`;
 }
 
 async function launchDevinInvestigation() {
@@ -250,18 +269,18 @@ async function launchDevinInvestigation() {
 
   const prompt = buildDevinPrompt();
 
-  // Check if Devin API is configured
-  if (!DEVIN_API_KEY || DEVIN_API_KEY === '%%DEVIN_API_KEY%%' || DEVIN_API_KEY === '') {
+  // Check if webhook proxy is configured
+  if (!WEBHOOK_URL || WEBHOOK_URL === '' || WEBHOOK_URL.includes('%')) {
     resultDiv.style.display = 'block';
-    resultHeader.innerHTML = '<span class="devin-status devin-status-info">Manual Mode</span> Devin API not configured';
+    resultHeader.innerHTML = '<span class="devin-status devin-status-info">Manual Mode</span> Webhook not configured';
     resultBody.innerHTML = `
-      <p>The Devin API key is not configured for this deployment. You can use the prompt manually:</p>
+      <p>The webhook proxy is not configured for this deployment. You can use the prompt manually:</p>
       <ol>
         <li>Go to <a href="https://app.devin.ai" target="_blank">app.devin.ai</a></li>
         <li>Start a new session</li>
         <li>Paste the investigation prompt (click "Copy Prompt" above)</li>
       </ol>
-      <p style="margin-top:12px;"><strong>For automatic mode:</strong> Set the <code>DEVIN_API_KEY</code> environment variable on the storefront container.</p>
+      <p style="margin-top:12px;"><strong>For automatic mode:</strong> Set the <code>WEBHOOK_URL</code> environment variable on the storefront container.</p>
     `;
     btn.disabled = false;
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Investigate with Devin';
@@ -269,13 +288,13 @@ async function launchDevinInvestigation() {
   }
 
   try {
-    const response = await fetch(`${DEVIN_API_URL}/sessions`, {
+    // Call the webhook proxy (server-side) to avoid browser CORS issues
+    const response = await fetch(`${WEBHOOK_URL}/investigate`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${DEVIN_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ prompt: prompt })
+      body: JSON.stringify({ team_id: teamId, prompt: prompt })
     });
 
     if (!response.ok) {
@@ -283,14 +302,20 @@ async function launchDevinInvestigation() {
     }
 
     const data = await response.json();
+    const sessionUrl = data.devin_url || data.url || '';
+    const sessionId = data.devin_session_id || data.session_id || 'N/A';
     resultDiv.style.display = 'block';
     resultHeader.innerHTML = '<span class="devin-status devin-status-success">Session Created</span> Devin is investigating';
     resultBody.innerHTML = `
       <p>Devin has started investigating the incident automatically.</p>
+      ${sessionUrl ? `<p style="margin:16px 0;"><a href="${sessionUrl}" target="_blank" class="devin-btn devin-btn-primary" style="display:inline-flex;text-decoration:none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open Devin Session
+      </a></p>` : ''}
       <div class="devin-session-info">
-        <div class="ctx-row"><span class="ctx-label">Session ID:</span> <span class="ctx-value">${data.session_id || 'N/A'}</span></div>
+        <div class="ctx-row"><span class="ctx-label">Session ID:</span> <span class="ctx-value">${sessionId}</span></div>
         <div class="ctx-row"><span class="ctx-label">Status:</span> <span class="ctx-value">In Progress</span></div>
-        ${data.url ? `<div class="ctx-row"><span class="ctx-label">View Session:</span> <a href="${data.url}" target="_blank" class="devin-link">${data.url}</a></div>` : ''}
+        ${sessionUrl ? `<div class="ctx-row"><span class="ctx-label">Session URL:</span> <a href="${sessionUrl}" target="_blank" class="devin-link">${sessionUrl}</a></div>` : ''}
       </div>
       <p style="margin-top:12px;">Devin will read the production logs, trace the bug across services, and open a PR with the fix. This typically takes 3-5 minutes.</p>
     `;
