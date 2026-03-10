@@ -97,10 +97,10 @@ async function loadOrders() {
       return;
     }
 
-    // Detect JPY orders that are stuck in "pending" (indicating payment failure)
+    // Detect orders with payment failures (failed status or JPY stuck in pending)
     incidents = [];
     orders.forEach(o => {
-      if (o.currency === 'JPY' && o.status === 'pending') {
+      if (o.status === 'failed' || (o.currency === 'JPY' && o.status === 'pending')) {
         incidents.push({
           order_id: o.order_id,
           currency: o.currency,
@@ -108,7 +108,9 @@ async function loadOrders() {
           status: o.status,
           created_at: o.created_at,
           error_type: 'Payment Processing Failure',
-          error_detail: 'Order stuck in pending — payment service appears to have crashed or timed out while processing this order. Customer received "Unable to Process Order" error.',
+          error_detail: o.status === 'failed'
+            ? 'Payment service crashed while processing this order. Customer received "Unable to Process Order" error.'
+            : 'Order stuck in pending — payment service appears to have crashed or timed out while processing this order.',
           severity: 'critical'
         });
       }
@@ -128,7 +130,7 @@ async function loadOrders() {
       const amt = o.currency === 'USD'
         ? '$' + (o.amount / 100).toFixed(2)
         : '\u00a5' + o.amount.toLocaleString();
-      const isError = o.currency === 'JPY' && o.status === 'pending';
+      const isError = o.status === 'failed' || (o.currency === 'JPY' && o.status === 'pending');
       const rowClass = isError ? 'ops-order-row ops-order-error' : 'ops-order-row';
       const time = new Date(o.created_at).toLocaleTimeString();
       return `<div class="${rowClass}">
