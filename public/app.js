@@ -147,7 +147,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function pollOrderStatus(orderId, maxWaitMs = 15000, intervalMs = 1000) {
+async function pollOrderStatus(orderId, maxWaitMs = 30000, intervalMs = 1500) {
   const start = Date.now();
   while (Date.now() - start < maxWaitMs) {
     try {
