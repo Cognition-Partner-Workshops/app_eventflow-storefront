@@ -17,6 +17,10 @@ function detectTeam() {
     teamNumber = teamMatch[1];
     teamId = `team${teamNumber}`;
     document.getElementById('team-badge').textContent = `Team ${teamNumber}`;
+  } else if (hostname.includes('-main')) {
+    teamId = 'main';
+    teamNumber = '';
+    document.getElementById('team-badge').textContent = 'Main';
   }
 
   // Set service URLs in health cards
@@ -208,7 +212,7 @@ function renderIncidents() {
 function buildDevinPrompt() {
   const orderUrl = API_BASE;
   const paymentUrl = API_BASE.replace('ef-order-', 'ef-payment-');
-  const branch = teamId || 'main';
+  const branch = 'main';
 
   // Build incident details from the most recent incident
   const incident = incidents.length > 0 ? incidents[0] : null;
@@ -260,7 +264,7 @@ Start by querying the logs. They are the source of truth for what is happening a
 3. **Fix** — Open a Pull Request on the appropriate repository against the \`${branch}\` branch with the fix.
 4. **Verify** — Make sure the fix passes CI.
 
-Open your fix PR against the \`${branch}\` branch, not \`main\`.`;
+Open your fix PR against the \`main\` branch.`;
 }
 
 async function launchDevinInvestigation() {
