@@ -122,22 +122,16 @@ async function placeOrder() {
 
     const order = await orderRes.json();
 
-    // For JPY orders: simulate the payment processing delay,
-    // then show the error that the payment service would surface
-    if (selectedCurrency === 'JPY') {
-      // Simulate a long, frustrating wait as the payment "processes"
-      await sleep(4000 + Math.random() * 2000);
-
-      // Show error - the payment service crashed in the background
+    // Poll order status — payment is processed asynchronously via Service Bus
+    const finalOrder = await pollOrderStatus(order.order_id);
+    if (finalOrder && finalOrder.status === 'completed') {
+      showSuccess(finalOrder);
+    } else {
       showError(
         order.order_id,
         'ERR_PAYMENT_PROCESSING_FAILED',
         'Payment gateway timeout — the downstream payment processor was unable to complete your transaction.'
       );
-    } else {
-      // USD: slight realistic delay, then success
-      await sleep(800 + Math.random() * 400);
-      showSuccess(order);
     }
   } catch (err) {
     showError(null, 'ERR_SERVICE_UNAVAILABLE', err.message);
@@ -151,6 +145,30 @@ async function placeOrder() {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function pollOrderStatus(orderId, maxWaitMs = 15000, intervalMs = 1000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const res = await fetch(`${API_BASE}/api/orders/${orderId}`);
+      if (res.ok) {
+        const order = await res.json();
+        if (order.status === 'completed' || order.status === 'failed') {
+          return order;
+        }
+      }
+    } catch (e) {
+      // ignore fetch errors during polling
+    }
+    await sleep(intervalMs);
+  }
+  // Timed out — return last known state
+  try {
+    const res = await fetch(`${API_BASE}/api/orders/${orderId}`);
+    if (res.ok) return await res.json();
+  } catch (e) { /* ignore */ }
+  return null;
 }
 
 // ── Results ──
